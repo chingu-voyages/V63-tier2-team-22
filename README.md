@@ -34,7 +34,7 @@ Everyone on your team should add their name along with a link to their GitHub
 your repo access and to practice PR'ing with your team *before* you start
 coding!
 
-- Damaris Aavedra #1: [GitHub](https://github.com/damarisaavedra25) / [LinkedIn](https://www.linkedin.com/in/damaris-saavedra)
+- Damaris Saavedra #1: [GitHub](https://github.com/damarisaavedra25) / [LinkedIn](https://www.linkedin.com/in/damaris-saavedra)
 - Cameron Frazier #2: [GitHub](https://github.com/CameronIFrazier) / [LinkedIn](https://www.linkedin.com/in/cameron-frazier-452b06383/)
 
    ...
