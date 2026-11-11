@@ -2,7 +2,7 @@
 import Header from "./assets/components/Header";
 import Footer from "./assets/components/Footer";
 import HeroCard from "./assets/components/HeroCard";
-import Sidebar from "./assets/components/Sidebar";
+import Sidebar from "./assets/components/SideBar";
 
 function App() {
   return (
@@ -25,11 +25,17 @@ function App() {
 
           {/* Guest and Login Buttons */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <button className="rounded bg-blue-500 px-4 py-2 text-white">
+            <button
+              type="button"
+              className="rounded bg-blue-500 px-4 py-2 text-white"
+            >
               Guest
             </button>
 
-            <button className="rounded bg-green-500 px-4 py-2 text-white">
+            <button
+              type="button"
+              className="rounded bg-green-500 px-4 py-2 text-white"
+            >
               Auth Login
             </button>
           </div>
