@@ -1,49 +1,74 @@
 
+import { useState } from "react";
+
 import Header from "./assets/components/Header";
 import Footer from "./assets/components/Footer";
-import HeroCard from "./assets/components/HeroCard";
 import Sidebar from "./assets/components/SideBar";
+import Home from "./assets/pages/Home";
+import GuestDashboard from "./assets/pages/GuestDashboard";
 
 function App() {
+  const [isGuest, setIsGuest] = useState(false);
+  const [currentPage, setCurrentPage] = useState("dashboard");
+
+  const handleGuestLogin = () => {
+    setIsGuest(true);
+    setCurrentPage("dashboard");
+  };
+
+const handleBackHome = () => {
+  setIsGuest(false);
+  setCurrentPage("dashboard");
+};
+
   return (
     <div className="flex min-h-screen bg-gray-100">
 
-      {/* Left Sidebar */}
-      <Sidebar />
+      {/* Sidebar */}
+      <Sidebar
+        onGuestLogin={handleGuestLogin}
+        isGuest={isGuest}
+      />
 
-      {/* Right Content */}
+      {/* Main Layout */}
       <div className="flex min-w-0 flex-1 flex-col">
 
-        {/* Header */}
         <Header />
 
-        {/* Main Content */}
-        <main className="w-full flex-1 px-5 pt-4 pb-6 md:px-5">
+        <main className="w-full flex-1 px-5 pt-4 pb-6">
 
-          {/* Hero Card */}
-          <HeroCard />
+          {!isGuest ? (
+            <Home onGuestLogin={handleGuestLogin} />
+          ) : currentPage === "dashboard" ? (
+            <GuestDashboard
+              onNavigate={setCurrentPage}
+              onBackHome={handleBackHome}
+            />
+          ) : (
+            <div className="py-10">
+              <button
+                type="button"
+                onClick={() => setCurrentPage("dashboard")}
+                className="mb-4 text-purple-700 hover:underline"
+              >
+                ← Back to Guest Dashboard
+              </button>
 
-          {/* Guest and Login Buttons */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <button
-              type="button"
-              className="rounded bg-blue-500 px-4 py-2 text-white"
-            >
-              Guest
-            </button>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {currentPage
+                  .split("-")
+                  .map(
+                    (word) =>
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                  )
+                  .join(" ")}
+              </h1>
 
-            <button
-              type="button"
-              className="rounded bg-green-500 px-4 py-2 text-white"
-            >
-              Auth Login
-            </button>
-          </div>
-
-          {/* AI Chat */}
-          <div className="mt-12 flex items-center justify-center">
-            <h3>AI Chat Icon</h3>
-          </div>
+              <p className="mt-2 text-gray-600">
+                This page hasn't been implemented yet.
+              </p>
+            </div>
+          )}
 
         </main>
 

@@ -12,6 +12,11 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+type SidebarProps = {
+  onGuestLogin: () => void;
+  isGuest: boolean;
+};
+
 // Main navigation
 const mainMenu = [
   { label: "Dashboard", icon: House },
@@ -30,7 +35,7 @@ const secondaryMenu = [
   { label: "Settings", icon: Settings },
 ];
 
-function Sidebar() {
+function Sidebar({ onGuestLogin, isGuest }: SidebarProps) {
   return (
     <aside
       aria-label="Sidebar"
@@ -51,10 +56,11 @@ function Sidebar() {
                 key={item.label}
                 type="button"
                 aria-current={isActive ? "page" : undefined}
-                className={`flex h-12 w-full items-center gap-5 rounded-lg px-4 text-left transition-colors ${isActive
+                className={`flex h-12 w-full items-center gap-5 rounded-lg px-4 text-left transition-colors ${
+                  isActive
                     ? "bg-gradient-to-r from-purple-800 to-purple-600"
                     : "hover:bg-white/10"
-                  }`}
+                }`}
               >
                 <Icon
                   size={25}
@@ -104,29 +110,34 @@ function Sidebar() {
         </div>
       </nav>
 
+ 
       {/* Guest Account Section */}
-      <div className="mt-auto px-[14px] pb-[16px] pt-8">
-        <div className="rounded-[15px] border border-[#9960D7] bg-gradient-to-br from-[#29183E] to-[#3A2458] px-[22px] py-[20px]">
-          <h2 className="mb-[7px] text-[21px] font-bold">
-            Try EventFlow
-          </h2>
+      {!isGuest && (
+        <div className="mt-auto px-[14px] pb-[16px] pt-8">
+          <div className="rounded-[15px] border border-[#9960D7] bg-gradient-to-br from-[#29183E] to-[#3A2458] px-[22px] py-[20px]">
+            <h2 className="mb-[7px] text-[21px] font-bold">
+              Try VibeTrack
+            </h2>
 
-          <p className="text-[15px] leading-[21px] text-[#F0EAF6]">
-            Explore the platform with a guest account and
-            manage a sample concert.
-          </p>
+            <p className="text-[15px] leading-[21px] text-[#F0EAF6]">
+              Explore the platform with a guest account and
+              manage a sample concert.
+            </p>
 
-          <button
-            type="button"
-            className="mt-[20px] flex h-[44px] w-full items-center justify-between rounded-[10px] border-[1.5px] border-white px-[16px] text-[15px] font-semibold transition-colors hover:bg-white/10"
-          >
-            <span>Continue as Guest</span>
-            <ArrowRight size={20} strokeWidth={1.8} />
-          </button>
+            <button
+              type="button"
+              onClick={onGuestLogin}
+              className="mt-[20px] flex h-[44px] w-full items-center justify-between rounded-[10px] border-[1.5px] border-white px-[16px] text-[15px] font-semibold transition-colors hover:bg-white/10"
+            >
+              <span>Continue as Guest</span>
+              <ArrowRight size={20} strokeWidth={1.8} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 }
 
 export default Sidebar;
+
