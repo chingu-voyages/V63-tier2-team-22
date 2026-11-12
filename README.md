@@ -27,15 +27,12 @@ Meeting Agenda templates (located in the `/docs` directory in this repo):
 - Meeting - Sprint Retrospective, Review, and Planning --> ./docs/meeting-sprint_retrospective_review_and_planning.docx
 - Meeting - Sprint Open Topic Session --> ./docs/meeting-sprint_open_topic_session.docx
 
-## Our Team
 
-Everyone on your team should add their name along with a link to their GitHub
-& optionally their LinkedIn profiles below. Do this in Sprint #1 to validate
-your repo access and to practice PR'ing with your team *before* you start
-coding!
+## 👥 Team 22
 
-- Damaris Saavedra #1: [GitHub](https://github.com/damarisaavedra25) / [LinkedIn](https://www.linkedin.com/in/damaris-saavedra)
-- Cameron Frazier #2: [GitHub](https://github.com/CameronIFrazier) / [LinkedIn](https://www.linkedin.com/in/cameron-frazier-452b06383/)
 
-   ...
-- Teammate name #n: [GitHub](https://github.com/ghaccountname) / [LinkedIn](https://linkedin.com/in/liaccountname)
+| Team Member | Role | Connect |
+| --- | --- | --- |
+| **Cameron Frazier** | Developer | [GitHub](https://github.com/CameronIFrazier) / [LinkedIn](https://www.linkedin.com/in/cameron-frazier-452b06383/) |
+| **Damaris Saavedra** | Developer | [GitHub](https://github.com/damarisaavedra25) · [LinkedIn](https://www.linkedin.com/in/damaris-saavedra/) |
+
