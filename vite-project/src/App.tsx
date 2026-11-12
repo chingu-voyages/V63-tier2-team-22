@@ -38,7 +38,7 @@ const handleBackHome = () => {
         <main className="w-full flex-1 px-5 pt-4 pb-6">
 
           {!isGuest ? (
-            <Home onGuestLogin={handleGuestLogin} />
+           <Home />
           ) : currentPage === "dashboard" ? (
             <GuestDashboard
               onNavigate={setCurrentPage}
