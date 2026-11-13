@@ -1,10 +1,14 @@
-
 import HeroCard from "../components/HeroCard";
 
-function Home() {
+type HomeProps = {
+  onGuestLogin: () => void;
+  onCreateConcert: () => void;
+};
+
+function Home({ onCreateConcert }: HomeProps) {
   return (
     <div>
-      <HeroCard />
+      <HeroCard onCreateConcert={onCreateConcert} />
     </div>
   );
 }
