@@ -2,7 +2,7 @@
 import { Plus, CalendarDays } from "lucide-react";
 import concertBanner from "../images/concert-banner.png";
 
-function HeroCard() {
+function HeroCard({ onCreateConcert }: { onCreateConcert: () => void }) {
   return (
     <section
       className="relative flex min-h-[180px] items-center overflow-hidden rounded-2xl bg-cover bg-center px-8 py-5 text-white"
@@ -29,6 +29,7 @@ function HeroCard() {
           <button
             type="button"
             className="flex items-center gap-2 rounded-lg bg-purple-700 px-4 py-2 text-sm font-semibold transition hover:bg-purple-600"
+            onClick={onCreateConcert}
           >
             <Plus size={19} />
             Create Concert
