@@ -35,5 +35,6 @@ Meeting Agenda templates (located in the `/docs` directory in this repo):
 | --- | --- | --- |
 | **Cameron Frazier** | Developer | [GitHub](https://github.com/CameronIFrazier) / [LinkedIn](https://www.linkedin.com/in/cameron-frazier-452b06383/) |
 | **Damaris Saavedra** | Developer | [GitHub](https://github.com/damarisaavedra25) · [LinkedIn](https://www.linkedin.com/in/damaris-saavedra/) |
+| **Luna Dong** | UX designer | [GitHub](https://github.com/Luna4423-arch) / [LinkedIn](https://www.linkedin.com/in/ling-dong-801b131aa/) |
 | **Chloe Jo** | Developer | [GitHub](https://github.com/chloejo-dev) / [LinkedIn](https://www.linkedin.com/in/chloe-hyeyoon-jo/) |
 
