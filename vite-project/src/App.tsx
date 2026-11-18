@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 
 import Header from "./assets/components/Header";
@@ -13,6 +14,7 @@ import TurnoutBySource from "./assets/components/TurnoutBySource";
 import RecentActivity from "./assets/components/RecentActivity";
 import ConcertFormModal from "./assets/components/ConcertFormModal";
 import type { Concert, ConcertFormValues } from "./types/concert";
+import Attendees from "./assets/components/Attendees";
 
 // Placeholder data — replace with real data / API later
 const initialConcerts: Concert[] = [
@@ -52,7 +54,8 @@ function App() {
   // Concerts + create/edit form state
   const [concerts, setConcerts] = useState<Concert[]>(initialConcerts);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingConcert, setEditingConcert] = useState<Concert | null>(null);
+  const [editingConcert, setEditingConcert] =
+    useState<Concert | null>(null);
 
   const handleGuestLogin = () => {
     setIsGuest(true);
@@ -77,71 +80,99 @@ function App() {
   const handleSaveConcert = (values: ConcertFormValues) => {
     if (editingConcert) {
       setConcerts((prev) =>
-        prev.map((c) => (c.id === editingConcert.id ? { ...c, ...values } : c))
+        prev.map((c) =>
+          c.id === editingConcert.id
+            ? { ...c, ...values }
+            : c
+        )
       );
     } else {
-      setConcerts((prev) => [...prev, { id: Date.now(), ...values }]);
+      setConcerts((prev) => [
+        ...prev,
+        { id: Date.now(), ...values },
+      ]);
     }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <Sidebar onGuestLogin={handleGuestLogin} isGuest={isGuest} />
+      <Sidebar
+        onGuestLogin={handleGuestLogin}
+        isGuest={isGuest}
+        onNavigate={setCurrentPage}
+        currentPage={currentPage}
+      />
 
       {/* Main Layout */}
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
         <main className="flex w-full flex-1 flex-col gap-4 px-5 pt-4 pb-6">
-          {!isGuest ? (
-            <Home
-              onGuestLogin={handleGuestLogin}
-              onCreateConcert={openCreateConcert}
-            />
-          ) : currentPage === "dashboard" ? (
-            <GuestDashboard
-              onNavigate={setCurrentPage}
-              onBackHome={handleBackHome}
-            />
+
+          {/* ATTENDEES PAGE */}
+          {currentPage === "attendees" ? (
+            <Attendees />
           ) : (
-            <div className="py-10">
-              <button
-                type="button"
-                onClick={() => setCurrentPage("dashboard")}
-                className="mb-4 text-purple-700 hover:underline"
-              >
-                ← Back to Guest Dashboard
-              </button>
+            <>
+              {/* ORIGINAL HOME / DASHBOARD */}
+              {!isGuest ? (
+                <Home
+                  onGuestLogin={handleGuestLogin}
+                  onCreateConcert={openCreateConcert}
+                />
+              ) : currentPage === "dashboard" ? (
+                <GuestDashboard
+                  onNavigate={setCurrentPage}
+                  onBackHome={handleBackHome}
+                />
+              ) : (
+                <div className="py-10">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage("dashboard")}
+                    className="mb-4 text-purple-700 hover:underline"
+                  >
+                    ← Back to Guest Dashboard
+                  </button>
 
-              <h1 className="text-2xl font-bold text-gray-900">
-                {currentPage
-                  .split("-")
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(" ")}
-              </h1>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {currentPage
+                      .split("-")
+                      .map(
+                        (word) =>
+                          word.charAt(0).toUpperCase() +
+                          word.slice(1)
+                      )
+                      .join(" ")}
+                  </h1>
 
-              <p className="mt-2 text-gray-600">
-                This page hasn't been implemented yet.
-              </p>
-            </div>
+                  <p className="mt-2 text-gray-600">
+                    This page hasn't been implemented yet.
+                  </p>
+                </div>
+              )}
+
+              {/* DASHBOARD SECTIONS — PRESERVED */}
+              <Statbar />
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  <UpcomingConcerts
+                    concerts={concerts}
+                    onEdit={openEditConcert}
+                  />
+                </div>
+                <PromoteWithAI />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <AttendanceChart />
+                <TurnoutBySource />
+                <RecentActivity />
+              </div>
+            </>
           )}
-
-          {/* Dashboard sections — inside <main> so there's no big gap */}
-          <Statbar />
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <UpcomingConcerts concerts={concerts} onEdit={openEditConcert} />
-            </div>
-            <PromoteWithAI />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <AttendanceChart />
-            <TurnoutBySource />
-            <RecentActivity />
-          </div>
         </main>
 
         {/* Footer */}
