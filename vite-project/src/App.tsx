@@ -14,36 +14,64 @@ import TurnoutBySource from "./assets/components/TurnoutBySource";
 import RecentActivity from "./assets/components/RecentActivity";
 import ConcertFormModal from "./assets/components/ConcertFormModal";
 import type { Concert, ConcertFormValues } from "./types/concert";
+import { sortUpcoming, todayISO } from "./types/concert";
+import { useLiveConcerts } from "./hooks/useLiveConcerts";
+import { useRecentConcerts } from "./hooks/useRecentConcerts";
 import Attendees from "./assets/components/Attendees";
+import Concerts from "./assets/pages/Concerts";
+import EventHistory from "./assets/pages/EventHistory";
 
-// Placeholder data — replace with real data / API later
-const initialConcerts: Concert[] = [
+// Sample upcoming concerts — only shown when the live API (SeatGeek) isn't available
+// (no API key, or the request failed), so the page never looks empty.
+const sampleUpcoming: Concert[] = [
   {
-    id: 1,
-    name: "The Brighters – Live in Concert",
-    date: "2025-12-15",
-    time: "21:00",
-    location: "Riverside Arena",
-    description: "",
-    expectedAttendance: 2500,
+    id: "sample-1",
+    source: "sample",
+    name: "The Brighteners Live Tour",
+    date: "2026-12-20",
+    time: "20:00",
+    location: "Madison Square Garden, NYC",
+    description:
+      "Experience The Brighteners like never before in their highly anticipated tour.",
+    expectedAttendance: 18000,
+    genre: "Pop",
+    ticketPrice: 129,
   },
   {
-    id: 2,
-    name: "Nordic Sound Tour",
-    date: "2026-01-10",
-    time: "20:30",
-    location: "City Music Hall",
+    id: "sample-2",
+    source: "sample",
+    name: "Dreamscape Tour",
+    date: "2026-11-28",
+    time: "19:30",
+    location: "Brooklyn Paramount, Brooklyn, NY",
     description: "",
-    expectedAttendance: 3200,
+    expectedAttendance: 2700,
+    genre: "Rock",
+    ticketPrice: 65,
   },
   {
-    id: 3,
-    name: "Velvet Echoes",
-    date: "2026-01-24",
-    time: "21:00",
-    location: "Harbor Stadium",
+    id: "sample-3",
+    source: "sample",
+    name: "Moonlight Melodies",
+    date: "2026-12-05",
+    time: "19:00",
+    location: "Radio City Music Hall, NYC",
     description: "",
-    expectedAttendance: 5000,
+    expectedAttendance: 6000,
+    genre: "Indie",
+    ticketPrice: 85,
+  },
+  {
+    id: "sample-4",
+    source: "sample",
+    name: "Future Beats Festival",
+    date: "2026-12-12",
+    time: "18:00",
+    location: "Barclays Center, Brooklyn, NY",
+    description: "",
+    expectedAttendance: 17000,
+    genre: "EDM",
+    ticketPrice: 95,
   },
 ];
 
@@ -51,11 +79,46 @@ function App() {
   const [isGuest, setIsGuest] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
-  // Concerts + create/edit form state
-  const [concerts, setConcerts] = useState<Concert[]>(initialConcerts);
+  // Concerts the app owns: user-created (plus edited copies of samples)
+  const [concerts, setConcerts] = useState<Concert[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConcert, setEditingConcert] =
     useState<Concert | null>(null);
+
+  // Real events from SeatGeek; fall back to samples if unavailable
+  const live = useLiveConcerts();
+  const external =
+    live.status === "ready"
+      ? live.concerts
+      : live.status === "loading"
+        ? []
+        : sampleUpcoming;
+
+  // Everything, with owned copies winning over external ones with the same id
+  const ownedIds = new Set(concerts.map((c) => c.id));
+  const allConcerts = [
+    ...concerts,
+    ...external.filter((c) => !ownedIds.has(c.id)),
+  ];
+
+  // User-created first (newest on top), then real events by date
+  const today = todayISO();
+  const upcomingConcerts = sortUpcoming(
+    allConcerts.filter((c) => c.date >= today),
+  );
+
+  // Event History: real recent concerts, including recent shows by the
+  // artists on the Upcoming list (waits for that list to load first)
+  const upcomingArtists = [
+    ...new Set(
+      (live.status === "ready" ? live.concerts : [])
+        .map((c) => c.artist)
+        .filter((a): a is string => !!a),
+    ),
+  ];
+  const recent = useRecentConcerts(
+    live.status === "loading" ? null : upcomingArtists,
+  );
 
   const handleGuestLogin = () => {
     setIsGuest(true);
@@ -79,17 +142,17 @@ function App() {
 
   const handleSaveConcert = (values: ConcertFormValues) => {
     if (editingConcert) {
+      const edited = { ...editingConcert, ...values };
       setConcerts((prev) =>
-        prev.map((c) =>
-          c.id === editingConcert.id
-            ? { ...c, ...values }
-            : c
-        )
+        prev.some((c) => c.id === edited.id)
+          ? prev.map((c) => (c.id === edited.id ? edited : c))
+          : [...prev, edited] // editing a fallback sample: keep our copy
       );
     } else {
+      const now = Date.now();
       setConcerts((prev) => [
         ...prev,
-        { id: Date.now(), ...values },
+        { id: now, source: "user", createdAt: now, ...values },
       ]);
     }
   };
@@ -113,6 +176,23 @@ function App() {
           {/* ATTENDEES PAGE */}
           {currentPage === "attendees" ? (
             <Attendees />
+          ) : currentPage === "concerts" ? (
+            <Concerts
+              concerts={allConcerts}
+              onCreate={openCreateConcert}
+              onEdit={openEditConcert}
+              apiStatus={live.status}
+              apiError={live.error}
+            />
+          ) : currentPage === "event-history" ? (
+            <EventHistory
+              recent={recent.concerts}
+              owned={concerts.filter((c) => c.source === "user")}
+              upcomingArtists={upcomingArtists}
+              status={recent.status}
+              error={recent.error}
+              onEdit={openEditConcert}
+            />
           ) : (
             <>
               {/* ORIGINAL HOME / DASHBOARD */}
@@ -159,8 +239,10 @@ function App() {
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                   <UpcomingConcerts
-                    concerts={concerts}
+                    concerts={upcomingConcerts.slice(0, 5)}
                     onEdit={openEditConcert}
+                    onViewAll={() => setCurrentPage("concerts")}
+                    apiStatus={live.status}
                   />
                 </div>
                 <PromoteWithAI />

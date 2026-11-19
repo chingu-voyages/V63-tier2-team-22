@@ -17,6 +17,7 @@ const emptyForm: ConcertFormValues = {
   location: "",
   description: "",
   expectedAttendance: 0,
+  ticketPrice: NaN, // NaN = not filled in yet (0 is a valid "free" price)
 };
 
 type Errors = Partial<Record<keyof ConcertFormValues, string>>;
@@ -29,6 +30,10 @@ function validate(values: ConcertFormValues): Errors {
   if (!values.location.trim()) errors.location = "Location is required";
   if (!values.expectedAttendance || values.expectedAttendance < 1)
     errors.expectedAttendance = "Enter a number greater than 0";
+  if (Number.isNaN(values.ticketPrice))
+    errors.ticketPrice = "Ticket price is required (enter 0 for free)";
+  else if (values.ticketPrice < 0)
+    errors.ticketPrice = "Price can't be negative";
   return errors;
 }
 
@@ -69,6 +74,7 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
         location: concert.location,
         description: concert.description,
         expectedAttendance: concert.expectedAttendance,
+        ticketPrice: concert.ticketPrice ?? NaN,
       });
     } else {
       setValues(emptyForm);
@@ -94,7 +100,12 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
     const found = validate(values);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
-    onSave({ ...values, name: values.name.trim(), location: values.location.trim() });
+    onSave({
+      ...values,
+      name: values.name.trim(),
+      location: values.location.trim(),
+      ticketPrice: Math.round(values.ticketPrice * 100) / 100, // keep to cents
+    });
     onClose();
   };
 
@@ -165,16 +176,40 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
             />
           </Field>
 
-          <Field label="Expected Attendance" error={errors.expectedAttendance}>
-            <input
-              type="number"
-              min={1}
-              value={values.expectedAttendance || ""}
-              onChange={(e) => update("expectedAttendance", Number(e.target.value))}
-              placeholder="e.g. 2500"
-              className={inputClass}
-            />
-          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Expected Attendance" error={errors.expectedAttendance}>
+              <input
+                type="number"
+                min={1}
+                value={values.expectedAttendance || ""}
+                onChange={(e) => update("expectedAttendance", Number(e.target.value))}
+                placeholder="e.g. 2500"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Ticket Price (USD)" error={errors.ticketPrice}>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                  $
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  value={Number.isNaN(values.ticketPrice) ? "" : values.ticketPrice}
+                  onChange={(e) =>
+                    update(
+                      "ticketPrice",
+                      e.target.value === "" ? NaN : Number(e.target.value),
+                    )
+                  }
+                  placeholder="e.g. 49.99"
+                  className={`${inputClass} pl-7`}
+                />
+              </div>
+            </Field>
+          </div>
 
           <Field label="Description">
             <textarea
