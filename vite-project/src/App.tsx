@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 import Header from "./assets/components/Header";
@@ -20,6 +19,7 @@ import { useRecentConcerts } from "./hooks/useRecentConcerts";
 import Attendees from "./assets/components/Attendees";
 import Concerts from "./assets/pages/Concerts";
 import EventHistory from "./assets/pages/EventHistory";
+import CheckIn from "./assets/pages/CheckIn";
 
 // Sample upcoming concerts — only shown when the live API (SeatGeek) isn't available
 // (no API key, or the request failed), so the page never looks empty.
@@ -82,8 +82,7 @@ function App() {
   // Concerts the app owns: user-created (plus edited copies of samples)
   const [concerts, setConcerts] = useState<Concert[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingConcert, setEditingConcert] =
-    useState<Concert | null>(null);
+  const [editingConcert, setEditingConcert] = useState<Concert | null>(null);
 
   // Real events from SeatGeek; fall back to samples if unavailable
   const live = useLiveConcerts();
@@ -143,10 +142,11 @@ function App() {
   const handleSaveConcert = (values: ConcertFormValues) => {
     if (editingConcert) {
       const edited = { ...editingConcert, ...values };
-      setConcerts((prev) =>
-        prev.some((c) => c.id === edited.id)
-          ? prev.map((c) => (c.id === edited.id ? edited : c))
-          : [...prev, edited] // editing a fallback sample: keep our copy
+      setConcerts(
+        (prev) =>
+          prev.some((c) => c.id === edited.id)
+            ? prev.map((c) => (c.id === edited.id ? edited : c))
+            : [...prev, edited], // editing a fallback sample: keep our copy
       );
     } else {
       const now = Date.now();
@@ -172,7 +172,6 @@ function App() {
         <Header />
 
         <main className="flex w-full flex-1 flex-col gap-4 px-5 pt-4 pb-6">
-
           {/* ATTENDEES PAGE */}
           {currentPage === "attendees" ? (
             <Attendees />
@@ -193,6 +192,8 @@ function App() {
               error={recent.error}
               onEdit={openEditConcert}
             />
+          ) : currentPage === "check-in" ? (
+            <CheckIn />
           ) : (
             <>
               {/* ORIGINAL HOME / DASHBOARD */}
@@ -220,9 +221,7 @@ function App() {
                     {currentPage
                       .split("-")
                       .map(
-                        (word) =>
-                          word.charAt(0).toUpperCase() +
-                          word.slice(1)
+                        (word) => word.charAt(0).toUpperCase() + word.slice(1),
                       )
                       .join(" ")}
                   </h1>
