@@ -19,6 +19,7 @@ import { useRecentConcerts } from "./hooks/useRecentConcerts";
 import Attendees from "./assets/components/Attendees";
 import Concerts from "./assets/pages/Concerts";
 import EventHistory from "./assets/pages/EventHistory";
+import Calendar from "./assets/pages/Calendar";
 import CheckIn from "./assets/pages/CheckIn";
 
 // Sample upcoming concerts — only shown when the live API (SeatGeek) isn't available
@@ -192,6 +193,8 @@ function App() {
               error={recent.error}
               onEdit={openEditConcert}
             />
+          ) : currentPage === "calendar" ? (
+            <Calendar concerts={concerts} />
           ) : currentPage === "check-in" ? (
             <CheckIn />
           ) : (
@@ -201,6 +204,7 @@ function App() {
                 <Home
                   onGuestLogin={handleGuestLogin}
                   onCreateConcert={openCreateConcert}
+                  onViewCalendar={() => setCurrentPage("calendar")}
                 />
               ) : currentPage === "dashboard" ? (
                 <GuestDashboard
