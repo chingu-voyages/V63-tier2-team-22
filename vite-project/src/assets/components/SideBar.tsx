@@ -15,6 +15,8 @@ import {
 type SidebarProps = {
   onGuestLogin: () => void;
   isGuest: boolean;
+  onNavigate: (page: string) => void;
+  currentPage: string;
 };
 
 // Main navigation
@@ -35,7 +37,13 @@ const secondaryMenu = [
   { label: "Settings", icon: Settings },
 ];
 
-function Sidebar({ onGuestLogin, isGuest }: SidebarProps) {
+function Sidebar({
+  onGuestLogin,
+  isGuest,
+  onNavigate,
+  currentPage,
+}: SidebarProps) {
+
   return (
     <aside
       aria-label="Sidebar"
@@ -49,12 +57,13 @@ function Sidebar({ onGuestLogin, isGuest }: SidebarProps) {
         <div className="flex flex-col gap-[1px]">
           {mainMenu.map((item) => {
             const Icon = item.icon;
-            const isActive = item.label === "Dashboard";
-
+            const page = item.label.toLowerCase().replace(/\s+/g, "-");
+            const isActive = currentPage === page;
             return (
-              <button
+             <button
                 key={item.label}
                 type="button"
+                onClick={() => onNavigate(page)}
                 aria-current={isActive ? "page" : undefined}
                 className={`flex h-12 w-full items-center gap-5 rounded-lg px-4 text-left transition-colors ${
                   isActive
