@@ -30,9 +30,13 @@ type ConcertsProps = {
   onEdit: (concert: Concert) => void;
   apiStatus: LiveApiStatus;
   apiError: string;
+  storeError?: string; // problem loading/saving your concerts in Firebase
 };
 
 type TimeFilter = "upcoming" | "past" | "all";
+
+// How many concerts the list shows at first, and how many more per "Show more"
+const PAGE_SIZE = 10;
 
 // "Get Tickets" goes to SeatGeek for real events; it's decorative for the rest
 function TicketsLink({
@@ -110,12 +114,21 @@ function FavoriteButton({
   );
 }
 
-function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsProps) {
+function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError, storeError }: ConcertsProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("upcoming");
   const [locationFilter, setLocationFilter] = useState("all");
   const [genreFilter, setGenreFilter] = useState("all");
   const [favorites, setFavorites] = useState<Set<Concert["id"]>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Changing the search or a filter starts the list back at the first page
+  const withReset =
+    <T,>(setter: (value: T) => void) =>
+    (value: T) => {
+      setter(value);
+      setVisibleCount(PAGE_SIZE);
+    };
 
   const toggleFavorite = (id: Concert["id"]) =>
     setFavorites((prev) => {
@@ -167,6 +180,8 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
   }, [concerts, search, timeFilter, locationFilter, genreFilter]);
 
   const [featured, ...rest] = filtered;
+  const visibleRest = rest.slice(0, visibleCount);
+  const hiddenCount = rest.length - visibleRest.length;
   const listTitle =
     timeFilter === "past" ? "Past Concerts" : timeFilter === "all" ? "All Concerts" : "Upcoming Concerts";
 
@@ -199,6 +214,12 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
           </p>
         )}
 
+        {storeError && (
+          <p role="alert" className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            {storeError} Concerts you create may not be saved.
+          </p>
+        )}
+
         {/* Search + filters */}
         <div className="mb-8 flex flex-wrap items-center gap-3">
           <div className="relative min-w-[220px] flex-1">
@@ -209,7 +230,7 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => withReset(setSearch)(e.target.value)}
               placeholder="Search by name, venue, or genre..."
               aria-label="Search concerts"
               className="w-full rounded-full border border-[#E5DDF2] bg-white py-3 pl-12 pr-4 text-sm text-[#35254E] outline-none focus:border-[#7900F9]"
@@ -218,7 +239,7 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
 
           <select
             value={timeFilter}
-            onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
+            onChange={(e) => withReset(setTimeFilter)(e.target.value as TimeFilter)}
             aria-label="Filter by date"
             className={selectClass}
           >
@@ -229,7 +250,7 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
 
           <select
             value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
+            onChange={(e) => withReset(setLocationFilter)(e.target.value)}
             aria-label="Filter by location"
             className={selectClass}
           >
@@ -243,7 +264,7 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
 
           <select
             value={genreFilter}
-            onChange={(e) => setGenreFilter(e.target.value)}
+            onChange={(e) => withReset(setGenreFilter)(e.target.value)}
             aria-label="Filter by genre"
             className={selectClass}
           >
@@ -405,7 +426,7 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
                 </p>
               ) : (
                 <ul className="flex flex-col gap-3">
-                  {rest.map((concert) => (
+                  {visibleRest.map((concert) => (
                     <li
                       key={concert.id}
                       className="flex flex-wrap items-center gap-4 rounded-xl border border-[#EEE5FA] bg-white p-3 shadow-sm sm:flex-nowrap"
@@ -457,6 +478,16 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError }: ConcertsP
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                  className="mt-4 w-full rounded-xl border border-[#D9C2FF] bg-white px-4 py-3 text-sm font-semibold text-[#7900F9] hover:bg-[#F5EDFF]"
+                >
+                  Show more ({hiddenCount} more)
+                </button>
               )}
             </section>
           </div>

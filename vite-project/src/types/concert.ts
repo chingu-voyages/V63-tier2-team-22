@@ -33,7 +33,25 @@ export type ConcertFormValues = {
   description: string;
   expectedAttendance: number;
   ticketPrice: number;
+  genre: string;
 };
+
+// Choices for the Genre field in the Create / Edit form
+export const GENRES = [
+  "Pop",
+  "Rock",
+  "Hip-Hop",
+  "R&B",
+  "Country",
+  "EDM",
+  "Jazz",
+  "Classical",
+  "Indie",
+  "Metal",
+  "Latin",
+  "Folk",
+  "Other",
+];
 
 // Only concerts the user made can be edited
 export const isEditable = (c: Concert) => c.source !== "live";

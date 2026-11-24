@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { X } from "lucide-react";
 import type { Concert, ConcertFormValues } from "../../types/concert";
+import { GENRES } from "../../types/concert";
 
 type ConcertFormModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (values: ConcertFormValues) => void;
+  onSave: (values: ConcertFormValues) => Promise<void> | void;
   concert?: Concert | null; // pass a concert to edit; leave empty to create
 };
 
@@ -18,6 +19,7 @@ const emptyForm: ConcertFormValues = {
   description: "",
   expectedAttendance: 0,
   ticketPrice: NaN, // NaN = not filled in yet (0 is a valid "free" price)
+  genre: "",
 };
 
 type Errors = Partial<Record<keyof ConcertFormValues, string>>;
@@ -28,6 +30,7 @@ function validate(values: ConcertFormValues): Errors {
   if (!values.date) errors.date = "Date is required";
   if (!values.time) errors.time = "Time is required";
   if (!values.location.trim()) errors.location = "Location is required";
+  if (!values.genre) errors.genre = "Genre is required";
   if (!values.expectedAttendance || values.expectedAttendance < 1)
     errors.expectedAttendance = "Enter a number greater than 0";
   if (Number.isNaN(values.ticketPrice))
@@ -62,6 +65,8 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
   const isEditing = Boolean(concert);
   const [values, setValues] = useState<ConcertFormValues>(emptyForm);
   const [errors, setErrors] = useState<Errors>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // Fill the form when opening (edit) or reset it (create)
   useEffect(() => {
@@ -75,11 +80,13 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
         description: concert.description,
         expectedAttendance: concert.expectedAttendance,
         ticketPrice: concert.ticketPrice ?? NaN,
+        genre: concert.genre ?? "",
       });
     } else {
       setValues(emptyForm);
     }
     setErrors({});
+    setSaveError("");
   }, [isOpen, concert]);
 
   // Close on Escape
@@ -95,19 +102,34 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
   const update = <K extends keyof ConcertFormValues>(key: K, value: ConcertFormValues[K]) =>
     setValues((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     const found = validate(values);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
-    onSave({
-      ...values,
-      name: values.name.trim(),
-      location: values.location.trim(),
-      ticketPrice: Math.round(values.ticketPrice * 100) / 100, // keep to cents
-    });
-    onClose();
+
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onSave({
+        ...values,
+        name: values.name.trim(),
+        location: values.location.trim(),
+        ticketPrice: Math.round(values.ticketPrice * 100) / 100, // keep to cents
+      });
+      onClose();
+    } catch (err) {
+      console.error("Error saving concert:", err);
+      setSaveError(err instanceof Error ? err.message : "Couldn't save the concert. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Keep an existing genre selectable even if it isn't in the standard list
+  const genreOptions =
+    values.genre && !GENRES.includes(values.genre) ? [values.genre, ...GENRES] : GENRES;
 
   return (
     <div
@@ -176,6 +198,23 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
             />
           </Field>
 
+          <Field label="Genre" error={errors.genre}>
+            <select
+              value={values.genre}
+              onChange={(e) => update("genre", e.target.value)}
+              className={inputClass}
+            >
+              <option value="" disabled>
+                Select a genre
+              </option>
+              {genreOptions.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </Field>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Expected Attendance" error={errors.expectedAttendance}>
               <input
@@ -221,6 +260,12 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
             />
           </Field>
 
+          {saveError && (
+            <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {saveError}
+            </p>
+          )}
+
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
@@ -231,9 +276,10 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800"
+              disabled={saving}
+              className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isEditing ? "Save Changes" : "Create Concert"}
+              {saving ? "Saving…" : isEditing ? "Save Changes" : "Create Concert"}
             </button>
           </div>
         </form>
