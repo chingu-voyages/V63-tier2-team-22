@@ -179,7 +179,14 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError, storeError 
       : sortUpcoming(matches);
   }, [concerts, search, timeFilter, locationFilter, genreFilter]);
 
-  const [featured, ...rest] = filtered;
+  // Your events live in the left column only; the right-hand list is just the
+  // promotional (SeatGeek) concerts. With no events of your own, the left
+  // column features the first promotional concert instead.
+  const mine = filtered.filter((c) => c.source === "user");
+  const promotional = filtered.filter((c) => c.source !== "user");
+  const featured = mine[0] ?? promotional[0];
+  const myOtherEvents = mine.slice(1);
+  const rest = mine.length > 0 ? promotional : promotional.slice(1);
   const visibleRest = rest.slice(0, visibleCount);
   const hiddenCount = rest.length - visibleRest.length;
   const listTitle =
@@ -373,6 +380,37 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError, storeError 
                 </div>
               </article>
 
+              {/* The rest of your events */}
+              {myOtherEvents.length > 0 && (
+                <section className="rounded-2xl border border-[#EEE5FA] bg-white p-5 shadow-sm">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[#392A55]">
+                    <Star size={20} className="text-[#7900F9]" />
+                    Your Other Events
+                  </h2>
+                  <ul className="flex flex-col gap-3">
+                    {myOtherEvents.map((concert) => (
+                      <li key={concert.id} className="flex items-center gap-4">
+                        <ConcertImage concert={concert} alt="" className="h-16 w-16 shrink-0 rounded-lg" />
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate font-semibold text-[#392A55]">{concert.name}</h3>
+                          <div className="mt-1">
+                            <DateLine concert={concert} small />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onEdit(concert)}
+                          aria-label={`Edit ${concert.name}`}
+                          className="shrink-0 rounded-lg p-2 text-[#7900F9] hover:bg-[#EEE2FF]"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               {/* My tickets */}
               <section className="rounded-2xl border border-[#EEE5FA] bg-white p-5 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
@@ -416,7 +454,7 @@ function Concerts({ concerts, onCreate, onEdit, apiStatus, apiError, storeError 
                   {listTitle}
                 </h2>
                 <span className="text-sm text-[#9A90A9]">
-                  {filtered.length} {filtered.length === 1 ? "event" : "events"}
+                  {rest.length} {rest.length === 1 ? "event" : "events"}
                 </span>
               </div>
 
