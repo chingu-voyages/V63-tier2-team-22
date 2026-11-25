@@ -16,6 +16,7 @@ import type { Concert, ConcertFormValues } from "./types/concert";
 import { sortUpcoming, todayISO } from "./types/concert";
 import { useLiveConcerts } from "./hooks/useLiveConcerts";
 import { useRecentConcerts } from "./hooks/useRecentConcerts";
+import { useStoredConcerts } from "./hooks/useStoredConcerts";
 import Attendees from "./assets/components/Attendees";
 import Concerts from "./assets/pages/Concerts";
 import EventHistory from "./assets/pages/EventHistory";
@@ -80,8 +81,16 @@ function App() {
   const [isGuest, setIsGuest] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
-  // Concerts the app owns: user-created (plus edited copies of samples)
-  const [concerts, setConcerts] = useState<Concert[]>([]);
+  // Concerts the app owns: user-created (plus edited copies of samples).
+  // Everyone sees the ones stored in Firestore. Only non-guests save there;
+  // guest creates/edits are kept in memory on top (guest copy wins by id).
+  const stored = useStoredConcerts();
+  const [guestConcerts, setGuestConcerts] = useState<Concert[]>([]);
+  const guestIds = new Set(guestConcerts.map((c) => c.id));
+  const concerts = [
+    ...stored.concerts.filter((c) => !guestIds.has(c.id)),
+    ...guestConcerts,
+  ];
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConcert, setEditingConcert] = useState<Concert | null>(null);
 
@@ -127,6 +136,7 @@ function App() {
 
   const handleBackHome = () => {
     setIsGuest(false);
+    setGuestConcerts([]); // guest concerts don't outlive the guest session
     setCurrentPage("dashboard");
   };
 
@@ -140,21 +150,30 @@ function App() {
     setIsFormOpen(true);
   };
 
-  const handleSaveConcert = (values: ConcertFormValues) => {
-    if (editingConcert) {
-      const edited = { ...editingConcert, ...values };
-      setConcerts(
-        (prev) =>
+  const handleSaveConcert = async (values: ConcertFormValues) => {
+    if (isGuest) {
+      if (editingConcert) {
+        const edited = { ...editingConcert, ...values };
+        setGuestConcerts((prev) =>
           prev.some((c) => c.id === edited.id)
             ? prev.map((c) => (c.id === edited.id ? edited : c))
             : [...prev, edited], // editing a fallback sample: keep our copy
-      );
+        );
+      } else {
+        const now = Date.now();
+        setGuestConcerts((prev) => [
+          ...prev,
+          { id: `guest-${now}`, source: "user", createdAt: now, ...values },
+        ]);
+      }
+      return;
+    }
+
+    if (editingConcert) {
+      // Overwrites the stored concert (or, for a fallback sample, saves our copy)
+      await stored.saveConcert({ ...editingConcert, ...values });
     } else {
-      const now = Date.now();
-      setConcerts((prev) => [
-        ...prev,
-        { id: now, source: "user", createdAt: now, ...values },
-      ]);
+      await stored.saveConcert({ source: "user", createdAt: Date.now(), ...values });
     }
   };
 
@@ -183,6 +202,7 @@ function App() {
               onEdit={openEditConcert}
               apiStatus={live.status}
               apiError={live.error}
+              storeError={stored.error}
             />
           ) : currentPage === "event-history" ? (
             <EventHistory

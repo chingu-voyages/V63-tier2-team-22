@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { X } from "lucide-react";
 import type { Concert, ConcertFormValues } from "../../types/concert";
+import { AGE_GROUPS, GENRES } from "../../types/concert";
+import type { AgeGroupKey, AgeGroups } from "../../types/concert";
 
 type ConcertFormModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (values: ConcertFormValues) => void;
+  onSave: (values: ConcertFormValues) => Promise<void> | void;
   concert?: Concert | null; // pass a concert to edit; leave empty to create
 };
 
@@ -18,7 +20,18 @@ const emptyForm: ConcertFormValues = {
   description: "",
   expectedAttendance: 0,
   ticketPrice: NaN, // NaN = not filled in yet (0 is a valid "free" price)
+  genre: "",
+  // NaN = not filled in yet (0% is a valid answer)
+  ageGroups: { under18: NaN, "18to24": NaN, "25to34": NaN, "35to44": NaN, "45plus": NaN },
+  localFansPercent: NaN,
 };
+
+const isPercent = (n: number) => !Number.isNaN(n) && n >= 0 && n <= 100;
+// Rounded to 1 decimal so 33.3 + 33.3 + 33.4 shows as 100, not 99.99999
+const ageTotal = (groups: AgeGroups) =>
+  Math.round(
+    Object.values(groups).reduce((sum, n) => sum + (Number.isNaN(n) ? 0 : n), 0) * 10,
+  ) / 10;
 
 type Errors = Partial<Record<keyof ConcertFormValues, string>>;
 
@@ -28,12 +41,19 @@ function validate(values: ConcertFormValues): Errors {
   if (!values.date) errors.date = "Date is required";
   if (!values.time) errors.time = "Time is required";
   if (!values.location.trim()) errors.location = "Location is required";
+  if (!values.genre) errors.genre = "Genre is required";
   if (!values.expectedAttendance || values.expectedAttendance < 1)
     errors.expectedAttendance = "Enter a number greater than 0";
   if (Number.isNaN(values.ticketPrice))
     errors.ticketPrice = "Ticket price is required (enter 0 for free)";
   else if (values.ticketPrice < 0)
     errors.ticketPrice = "Price can't be negative";
+  if (!Object.values(values.ageGroups).every(isPercent))
+    errors.ageGroups = "Enter a % (0–100) for every age group";
+  else if (Math.round(ageTotal(values.ageGroups)) !== 100)
+    errors.ageGroups = `Age groups must add up to 100% (currently ${ageTotal(values.ageGroups)}%)`;
+  if (!isPercent(values.localFansPercent))
+    errors.localFansPercent = "Enter a % between 0 and 100";
   return errors;
 }
 
@@ -62,6 +82,8 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
   const isEditing = Boolean(concert);
   const [values, setValues] = useState<ConcertFormValues>(emptyForm);
   const [errors, setErrors] = useState<Errors>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // Fill the form when opening (edit) or reset it (create)
   useEffect(() => {
@@ -75,11 +97,15 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
         description: concert.description,
         expectedAttendance: concert.expectedAttendance,
         ticketPrice: concert.ticketPrice ?? NaN,
+        genre: concert.genre ?? "",
+        ageGroups: concert.ageGroups ?? emptyForm.ageGroups,
+        localFansPercent: concert.localFansPercent ?? NaN,
       });
     } else {
       setValues(emptyForm);
     }
     setErrors({});
+    setSaveError("");
   }, [isOpen, concert]);
 
   // Close on Escape
@@ -95,19 +121,40 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
   const update = <K extends keyof ConcertFormValues>(key: K, value: ConcertFormValues[K]) =>
     setValues((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = (e: FormEvent) => {
+  const updateAge = (key: AgeGroupKey, raw: string) =>
+    setValues((prev) => ({
+      ...prev,
+      ageGroups: { ...prev.ageGroups, [key]: raw === "" ? NaN : Number(raw) },
+    }));
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     const found = validate(values);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
-    onSave({
-      ...values,
-      name: values.name.trim(),
-      location: values.location.trim(),
-      ticketPrice: Math.round(values.ticketPrice * 100) / 100, // keep to cents
-    });
-    onClose();
+
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onSave({
+        ...values,
+        name: values.name.trim(),
+        location: values.location.trim(),
+        ticketPrice: Math.round(values.ticketPrice * 100) / 100, // keep to cents
+      });
+      onClose();
+    } catch (err) {
+      console.error("Error saving concert:", err);
+      setSaveError(err instanceof Error ? err.message : "Couldn't save the concert. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Keep an existing genre selectable even if it isn't in the standard list
+  const genreOptions =
+    values.genre && !GENRES.includes(values.genre) ? [values.genre, ...GENRES] : GENRES;
 
   return (
     <div
@@ -176,6 +223,23 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
             />
           </Field>
 
+          <Field label="Genre" error={errors.genre}>
+            <select
+              value={values.genre}
+              onChange={(e) => update("genre", e.target.value)}
+              className={inputClass}
+            >
+              <option value="" disabled>
+                Select a genre
+              </option>
+              {genreOptions.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </Field>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Expected Attendance" error={errors.expectedAttendance}>
               <input
@@ -187,7 +251,7 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
                 className={inputClass}
               />
             </Field>
-            <Field label="Ticket Price (USD)" error={errors.ticketPrice}>
+            <Field label="Ticket Price per Person (USD)" error={errors.ticketPrice}>
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
                   $
@@ -211,6 +275,72 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
             </Field>
           </div>
 
+          {/* Demographics */}
+          <fieldset className="rounded-lg border border-gray-200 p-4">
+            <legend className="px-1 text-sm font-semibold text-gray-800">
+              Demographics
+            </legend>
+
+            <p className="mb-2 text-sm font-medium text-gray-700">
+              Expected age groups (%)
+            </p>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+              {AGE_GROUPS.map(({ key, label }) => (
+                <label key={key} className="block">
+                  <span className="mb-1 block text-xs text-gray-600">{label}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    inputMode="numeric"
+                    value={Number.isNaN(values.ageGroups[key]) ? "" : values.ageGroups[key]}
+                    onChange={(e) => updateAge(key, e.target.value)}
+                    placeholder="%"
+                    className={inputClass}
+                  />
+                </label>
+              ))}
+            </div>
+            <p
+              className={`mt-2 text-xs ${
+                Math.round(ageTotal(values.ageGroups)) === 100 ? "text-green-700" : "text-gray-500"
+              }`}
+            >
+              Total: {ageTotal(values.ageGroups)}% of 100%
+            </p>
+            {errors.ageGroups && (
+              <span className="mt-1 block text-xs text-red-600">{errors.ageGroups}</span>
+            )}
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Local fans (%)" error={errors.localFansPercent}>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  inputMode="numeric"
+                  value={Number.isNaN(values.localFansPercent) ? "" : values.localFansPercent}
+                  onChange={(e) =>
+                    update(
+                      "localFansPercent",
+                      e.target.value === "" ? NaN : Number(e.target.value),
+                    )
+                  }
+                  placeholder="e.g. 70"
+                  className={inputClass}
+                />
+              </Field>
+              <div>
+                <span className="mb-1 block text-sm font-medium text-gray-700">
+                  Traveling fans (%)
+                </span>
+                <p className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                  {isPercent(values.localFansPercent) ? `${100 - values.localFansPercent}%` : "—"}
+                </p>
+              </div>
+            </div>
+          </fieldset>
+
           <Field label="Description">
             <textarea
               rows={4}
@@ -220,6 +350,12 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
               className={inputClass}
             />
           </Field>
+
+          {saveError && (
+            <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {saveError}
+            </p>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
@@ -231,9 +367,10 @@ function ConcertFormModal({ isOpen, onClose, onSave, concert }: ConcertFormModal
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800"
+              disabled={saving}
+              className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isEditing ? "Save Changes" : "Create Concert"}
+              {saving ? "Saving…" : isEditing ? "Save Changes" : "Create Concert"}
             </button>
           </div>
         </form>

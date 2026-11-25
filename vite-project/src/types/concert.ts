@@ -21,8 +21,21 @@ export type Concert = {
   genre?: string;
   url?: string; // where to buy tickets (live events)
   actualAttendance?: number; // filled in after the event happens
+  ageGroups?: AgeGroups; // expected audience by age, in % (adds up to 100)
+  localFansPercent?: number; // % of fans who are local; traveling = 100 - this
   createdAt?: number; // set on user-created concerts
 };
+
+// Demographics: expected share of the audience in each age group (%)
+export const AGE_GROUPS = [
+  { key: "under18", label: "Under 18" },
+  { key: "18to24", label: "18–24" },
+  { key: "25to34", label: "25–34" },
+  { key: "35to44", label: "35–44" },
+  { key: "45plus", label: "45+" },
+] as const;
+export type AgeGroupKey = (typeof AGE_GROUPS)[number]["key"];
+export type AgeGroups = Record<AgeGroupKey, number>;
 
 // What the form edits
 export type ConcertFormValues = {
@@ -32,8 +45,28 @@ export type ConcertFormValues = {
   location: string;
   description: string;
   expectedAttendance: number;
-  ticketPrice: number;
+  ticketPrice: number; // per person
+  genre: string;
+  ageGroups: AgeGroups;
+  localFansPercent: number;
 };
+
+// Choices for the Genre field in the Create / Edit form
+export const GENRES = [
+  "Pop",
+  "Rock",
+  "Hip-Hop",
+  "R&B",
+  "Country",
+  "EDM",
+  "Jazz",
+  "Classical",
+  "Indie",
+  "Metal",
+  "Latin",
+  "Folk",
+  "Other",
+];
 
 // Only concerts the user made can be edited
 export const isEditable = (c: Concert) => c.source !== "live";
