@@ -21,7 +21,7 @@ import Attendees from "./assets/components/Attendees";
 import Concerts from "./assets/pages/Concerts";
 import EventHistory from "./assets/pages/EventHistory";
 import Calendar from "./assets/pages/Calendar";
-import CheckIn from "./assets/pages/CheckIn";
+import CheckInSummary from "./assets/pages/CheckInSummary";
 
 // Sample upcoming concerts — only shown when the live API (SeatGeek) isn't available
 // (no API key, or the request failed), so the page never looks empty.
@@ -93,6 +93,7 @@ function App() {
   ];
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConcert, setEditingConcert] = useState<Concert | null>(null);
+  const [selectedConcert, setSelectedConcert] = useState<Concert | null>(null);
 
   // Real events from SeatGeek; fall back to samples if unavailable
   const live = useLiveConcerts();
@@ -154,10 +155,11 @@ function App() {
     if (isGuest) {
       if (editingConcert) {
         const edited = { ...editingConcert, ...values };
-        setGuestConcerts((prev) =>
-          prev.some((c) => c.id === edited.id)
-            ? prev.map((c) => (c.id === edited.id ? edited : c))
-            : [...prev, edited], // editing a fallback sample: keep our copy
+        setGuestConcerts(
+          (prev) =>
+            prev.some((c) => c.id === edited.id)
+              ? prev.map((c) => (c.id === edited.id ? edited : c))
+              : [...prev, edited], // editing a fallback sample: keep our copy
         );
       } else {
         const now = Date.now();
@@ -173,8 +175,17 @@ function App() {
       // Overwrites the stored concert (or, for a fallback sample, saves our copy)
       await stored.saveConcert({ ...editingConcert, ...values });
     } else {
-      await stored.saveConcert({ source: "user", createdAt: Date.now(), ...values });
+      await stored.saveConcert({
+        source: "user",
+        createdAt: Date.now(),
+        ...values,
+      });
     }
+  };
+
+  const handleViewCheckIn = (concert: Concert) => {
+    setSelectedConcert(concert);
+    setCurrentPage("check-in");
   };
 
   return (
@@ -215,8 +226,8 @@ function App() {
             />
           ) : currentPage === "calendar" ? (
             <Calendar concerts={concerts} />
-          ) : currentPage === "check-in" ? (
-            <CheckIn />
+          ) : currentPage === "check-in" && selectedConcert ? (
+            <CheckInSummary selectedConcert={selectedConcert} />
           ) : (
             <>
               {/* ORIGINAL HOME / DASHBOARD */}
@@ -266,6 +277,7 @@ function App() {
                     onEdit={openEditConcert}
                     onViewAll={() => setCurrentPage("concerts")}
                     apiStatus={live.status}
+                    onViewCheckIn={handleViewCheckIn}
                   />
                 </div>
                 <PromoteWithAI />
