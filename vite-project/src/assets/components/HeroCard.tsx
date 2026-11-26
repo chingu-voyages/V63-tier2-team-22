@@ -5,7 +5,7 @@ function HeroCard({
   onCreateConcert,
   onViewCalendar,
 }: {
-  onCreateConcert: () => void;
+  onCreateConcert?: () => void;
   onViewCalendar: () => void;
 }) {
   return (
@@ -28,14 +28,16 @@ function HeroCard({
 
         {/* Buttons */}
         <div className="mt-4 flex flex-wrap gap-4">
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg bg-purple-700 px-4 py-2 text-sm font-semibold transition hover:bg-purple-600"
-            onClick={onCreateConcert}
-          >
-            <Plus size={19} />
-            Create Concert
-          </button>
+          {onCreateConcert && (
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-lg bg-purple-700 px-4 py-2 text-sm font-semibold transition hover:bg-purple-600"
+              onClick={onCreateConcert}
+            >
+              <Plus size={19} />
+              Create Concert
+            </button>
+          )}
 
           <button
             type="button"

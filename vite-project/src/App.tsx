@@ -8,9 +8,6 @@ import GuestDashboard from "./assets/pages/GuestDashboard";
 import Statbar from "./assets/components/Statbar";
 import UpcomingConcerts from "./assets/components/UpcomingConcerts";
 import PromoteWithAI from "./assets/components/PromoteWithAI";
-import AttendanceChart from "./assets/components/AttendanceChart";
-import TurnoutBySource from "./assets/components/TurnoutBySource";
-import RecentActivity from "./assets/components/RecentActivity";
 import ConcertFormModal from "./assets/components/ConcertFormModal";
 import type { Concert, ConcertFormValues } from "./types/concert";
 import { sortUpcoming, todayISO } from "./types/concert";
@@ -21,6 +18,7 @@ import Attendees from "./assets/components/Attendees";
 import Concerts from "./assets/pages/Concerts";
 import EventHistory from "./assets/pages/EventHistory";
 import Calendar from "./assets/pages/Calendar";
+import { useStoredAttendees } from "./hooks/useStoredAttendees";
 import CheckInSummary from "./assets/pages/CheckInSummary";
 
 // Sample upcoming concerts — only shown when the live API (SeatGeek) isn't available
@@ -85,6 +83,7 @@ function App() {
   // Everyone sees the ones stored in Firestore. Only non-guests save there;
   // guest creates/edits are kept in memory on top (guest copy wins by id).
   const stored = useStoredConcerts();
+  const attendeeStore = useStoredAttendees();
   const [guestConcerts, setGuestConcerts] = useState<Concert[]>([]);
   const guestIds = new Set(guestConcerts.map((c) => c.id));
   const concerts = [
@@ -234,13 +233,17 @@ function App() {
               {!isGuest ? (
                 <Home
                   onGuestLogin={handleGuestLogin}
-                  onCreateConcert={openCreateConcert}
                   onViewCalendar={() => setCurrentPage("calendar")}
                 />
               ) : currentPage === "dashboard" ? (
                 <GuestDashboard
                   onNavigate={setCurrentPage}
                   onBackHome={handleBackHome}
+                  concerts={concerts.filter((c) => c.source === "user")}
+                  totalAttendees={attendeeStore.attendees.length}
+                  checkedInAttendees={
+                    attendeeStore.attendees.filter((a) => a.checkedIn).length
+                  }
                 />
               ) : (
                 <div className="py-10">
@@ -281,12 +284,6 @@ function App() {
                   />
                 </div>
                 <PromoteWithAI />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <AttendanceChart />
-                <TurnoutBySource />
-                <RecentActivity />
               </div>
             </>
           )}
