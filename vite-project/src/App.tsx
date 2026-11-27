@@ -235,7 +235,7 @@ function App() {
           ) : currentPage === "event-history" ? (
             <EventHistory
               recent={recent.concerts}
-              owned={concerts.filter((c) => c.source === "user")}
+              owned={allConcerts}
               upcomingArtists={upcomingArtists}
               status={recent.status}
               error={recent.error}

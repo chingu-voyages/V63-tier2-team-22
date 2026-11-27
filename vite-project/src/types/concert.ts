@@ -20,7 +20,7 @@ export type Concert = {
   artist?: string; // headliner, used to look up a photo
   genre?: string;
   url?: string; // where to buy tickets (live events)
-  actualAttendance?: number; // filled in after the event happens
+  actualAttendance?: number | null; // filled in after the event happens
   ageGroups?: AgeGroups; // expected audience by age, in % (adds up to 100)
   localFansPercent?: number; // % of fans who are local; traveling = 100 - this
   createdAt?: number; // set on user-created concerts
@@ -45,6 +45,7 @@ export type ConcertFormValues = {
   location: string;
   description: string;
   expectedAttendance: number;
+  actualAttendance?: number | null;
   ticketPrice: number; // per person
   genre: string;
   ageGroups: AgeGroups;
