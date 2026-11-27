@@ -22,7 +22,12 @@ import {
 
 import ConcertImage from "../components/ConcertImage";
 import type { Concert } from "../../types/concert";
-import { formatDate, formatPrice, formatTime, todayISO } from "../../types/concert";
+import {
+  formatDate,
+  formatPrice,
+  formatTime,
+  todayISO,
+} from "../../types/concert";
 import type { RecentStatus } from "../../hooks/useRecentConcerts";
 
 type EventHistoryProps = {
@@ -42,11 +47,17 @@ const DAY_MS = 86_400_000;
 
 const daysAgo = (date: string) =>
   Math.round(
-    (new Date(`${todayISO()}T00:00`).getTime() - new Date(`${date}T00:00`).getTime()) / DAY_MS,
+    (new Date(`${todayISO()}T00:00`).getTime() -
+      new Date(`${date}T00:00`).getTime()) /
+      DAY_MS,
   );
 
 const groupLabel = (days: number) =>
-  days <= 7 ? "This past week" : days <= 14 ? "Last week" : "Earlier this month";
+  days <= 7
+    ? "This past week"
+    : days <= 14
+      ? "Last week"
+      : "Earlier this month";
 
 const cityOf = (location: string) => location.split(", ").slice(1).join(", ");
 
@@ -55,10 +66,21 @@ const turnoutOf = (c: Concert) =>
     ? null
     : Math.round((c.actualAttendance / c.expectedAttendance) * 100);
 
-function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }: EventHistoryProps) {
+function EventHistory({
+  recent,
+  owned,
+  upcomingArtists,
+  status,
+  error,
+  onEdit,
+}: EventHistoryProps) {
   const [search, setSearch] = useState("");
   const [windowDays, setWindowDays] = useState<Window>(30);
   const [show, setShow] = useState<Show>("all");
+  const INITIAL_VISIBLE = 10;
+  const PAGE_STEP = 50;
+
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
 
   const upcomingSet = useMemo(
     () => new Set(upcomingArtists.map((a) => a.toLowerCase())),
@@ -94,7 +116,9 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
   // Stats for the current filters
   const artists = new Set(filtered.map((c) => c.artist ?? c.name));
   const venues = new Set(filtered.map((c) => c.location.split(", ")[0]));
-  const cities = new Set(filtered.map((c) => cityOf(c.location)).filter(Boolean));
+  const cities = new Set(
+    filtered.map((c) => cityOf(c.location)).filter(Boolean),
+  );
 
   const stats = [
     { label: "Concerts", value: filtered.length, icon: Music },
@@ -116,14 +140,21 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
       .slice(0, 6);
   }, [filtered]);
 
+  const visibleEvents = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount],
+  );
+  const remainingCount = filtered.length - visibleEvents.length;
+  const nextBatchSize = Math.min(PAGE_STEP, remainingCount);
+
   const groups = useMemo(() => {
     const map = new Map<string, Concert[]>();
-    for (const c of filtered) {
+    for (const c of visibleEvents) {
       const label = groupLabel(daysAgo(c.date));
       map.set(label, [...(map.get(label) ?? []), c]);
     }
     return [...map].map(([label, items]) => ({ label, items }));
-  }, [filtered]);
+  }, [visibleEvents]);
 
   const selectClass =
     "rounded-xl border border-[#CEC4DD] bg-white px-4 py-3 text-sm text-[#35254E] outline-none focus:border-[#7900F9]";
@@ -145,7 +176,10 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
           </p>
         )}
         {status === "error" && (
-          <p role="alert" className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <p
+            role="alert"
+            className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700"
+          >
             Couldn't load recent concerts ({error}).
           </p>
         )}
@@ -162,7 +196,9 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
               </div>
               <div>
                 <p className="text-xs text-[#9589A8]">{label}</p>
-                <p className="mt-1 text-xl font-bold text-[#392A55]">{value.toLocaleString()}</p>
+                <p className="mt-1 text-xl font-bold text-[#392A55]">
+                  {value.toLocaleString()}
+                </p>
               </div>
             </div>
           ))}
@@ -171,9 +207,16 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
         {/* Chart */}
         {topArtists.length > 0 && (
           <section className="mb-8 rounded-xl border border-[#EDE5F8] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#392A55]">Busiest Artists</h2>
-            <p className="text-xs text-[#81768F]">Shows played in the selected period</p>
-            <div className="mt-4" style={{ height: 44 * topArtists.length + 20 }}>
+            <h2 className="text-lg font-semibold text-[#392A55]">
+              Busiest Artists
+            </h2>
+            <p className="text-xs text-[#81768F]">
+              Shows played in the selected period
+            </p>
+            <div
+              className="mt-4"
+              style={{ height: 44 * topArtists.length + 20 }}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={topArtists}
@@ -201,7 +244,12 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
                     formatter={(value) => [value, "Shows"]}
                     contentStyle={{ borderRadius: 8, fontSize: 12 }}
                   />
-                  <Bar dataKey="shows" fill={PURPLE} radius={[0, 4, 4, 0]} maxBarSize={22} />
+                  <Bar
+                    dataKey="shows"
+                    fill={PURPLE}
+                    radius={[0, 4, 4, 0]}
+                    maxBarSize={22}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -218,7 +266,10 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setVisibleCount(INITIAL_VISIBLE);
+              }}
               placeholder="Search by artist, venue, or city..."
               aria-label="Search past events"
               className="w-full rounded-full border border-[#E5DDF2] bg-white py-3 pl-12 pr-4 text-sm text-[#35254E] outline-none focus:border-[#7900F9]"
@@ -226,7 +277,10 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
           </div>
           <select
             value={windowDays}
-            onChange={(e) => setWindowDays(Number(e.target.value) as Window)}
+            onChange={(e) => {
+              setWindowDays(Number(e.target.value) as Window);
+              setVisibleCount(INITIAL_VISIBLE);
+            }}
             aria-label="Time period"
             className={selectClass}
           >
@@ -236,12 +290,17 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
           </select>
           <select
             value={show}
-            onChange={(e) => setShow(e.target.value as Show)}
+            onChange={(e) => {
+              setShow(e.target.value as Show);
+              setVisibleCount(INITIAL_VISIBLE);
+            }}
             aria-label="Which events"
             className={selectClass}
           >
             <option value="all">All concerts</option>
-            <option value="upcoming-artists">Artists on your upcoming list</option>
+            <option value="upcoming-artists">
+              Artists on your upcoming list
+            </option>
             <option value="mine">Your events</option>
           </select>
         </div>
@@ -251,8 +310,12 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
           status === "ready" || status === "error" ? (
             <div className="rounded-xl border border-[#EEE5FA] bg-white px-6 py-14 text-center">
               <History size={35} className="mx-auto mb-3 text-[#A777E8]" />
-              <h3 className="font-semibold text-[#35254E]">No past events found</h3>
-              <p className="mt-2 text-sm text-[#92869F]">Try adjusting your search or filters.</p>
+              <h3 className="font-semibold text-[#35254E]">
+                No past events found
+              </h3>
+              <p className="mt-2 text-sm text-[#92869F]">
+                Try adjusting your search or filters.
+              </p>
             </div>
           ) : null
         ) : (
@@ -278,19 +341,28 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
                         <article className="flex flex-col gap-4 rounded-xl border border-[#EEE5FA] bg-white p-4 shadow-sm md:flex-row md:items-center">
                           {/* Photo + date stamp */}
                           <div className="relative shrink-0">
-                            <ConcertImage concert={c} className="h-24 w-full rounded-lg md:w-36" />
+                            <ConcertImage
+                              concert={c}
+                              className="h-24 w-full rounded-lg md:w-36"
+                            />
                             <div className="absolute left-2 top-2 rounded-md bg-white/90 px-2 py-1 text-center leading-none shadow-sm">
                               <p className="text-[10px] font-semibold uppercase text-[#7900F9]">
-                                {d.toLocaleDateString("en-US", { month: "short" })}
+                                {d.toLocaleDateString("en-US", {
+                                  month: "short",
+                                })}
                               </p>
-                              <p className="text-base font-bold text-[#26153B]">{d.getDate()}</p>
+                              <p className="text-base font-bold text-[#26153B]">
+                                {d.getDate()}
+                              </p>
                             </div>
                           </div>
 
                           {/* Details */}
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="font-semibold text-[#392A55]">{c.name}</h3>
+                              <h3 className="font-semibold text-[#392A55]">
+                                {c.name}
+                              </h3>
                               {mine && (
                                 <span className="rounded-full bg-[#7900F9] px-2.5 py-0.5 text-[10px] font-semibold uppercase text-white">
                                   Your event
@@ -304,10 +376,15 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
                               )}
                             </div>
                             {!mine && c.description && (
-                              <p className="mt-0.5 text-xs text-[#9A90A9]">{c.description}</p>
+                              <p className="mt-0.5 text-xs text-[#9A90A9]">
+                                {c.description}
+                              </p>
                             )}
                             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-[#81768F]">
-                              <MapPin size={13} className="shrink-0 text-[#7900F9]" />
+                              <MapPin
+                                size={13}
+                                className="shrink-0 text-[#7900F9]"
+                              />
                               <span>{c.location}</span>
                               <span className="text-[#C9BFD6]">•</span>
                               <span>
@@ -326,13 +403,17 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
                                       : `${c.expectedAttendance.toLocaleString()} expected · attendance not recorded`}
                                   </span>
                                   {turnout != null && (
-                                    <span className="font-semibold text-[#392A55]">{turnout}%</span>
+                                    <span className="font-semibold text-[#392A55]">
+                                      {turnout}%
+                                    </span>
                                   )}
                                 </div>
                                 <div className="h-2 overflow-hidden rounded-full bg-[#F1E6FF]">
                                   <div
                                     className="h-full rounded-full bg-gradient-to-r from-[#9B4DFF] to-[#7900F9]"
-                                    style={{ width: `${Math.min(turnout ?? 0, 100)}%` }}
+                                    style={{
+                                      width: `${Math.min(turnout ?? 0, 100)}%`,
+                                    }}
                                   />
                                 </div>
                               </div>
@@ -380,10 +461,21 @@ function EventHistory({ recent, owned, upcomingArtists, status, error, onEdit }:
         )}
 
         <p className="mt-10 text-center text-xs text-[#A89DB8]">
-          Concert history from MusicBrainz, a community-maintained music database. Coverage
-          varies by artist and region.
+          Concert history from MusicBrainz, a community-maintained music
+          database. Coverage varies by artist and region.
         </p>
       </div>
+      {remainingCount > 0 && (
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((n) => n + PAGE_STEP)}
+            className="rounded-xl border border-[#D9C2FF] bg-white px-6 py-3 text-sm font-semibold text-[#7900F9] shadow-sm hover:bg-[#F5EDFF]"
+          >
+            Show {nextBatchSize} more ({remainingCount} remaining)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
