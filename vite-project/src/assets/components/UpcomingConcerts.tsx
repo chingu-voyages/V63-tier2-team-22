@@ -1,4 +1,11 @@
-import { ArrowRight, CalendarDays, Clock3, ExternalLink, MapPin, Pencil } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  Clock3,
+  ExternalLink,
+  MapPin,
+  Pencil,
+} from "lucide-react";
 import ConcertImage from "./ConcertImage";
 import type { Concert } from "../../types/concert";
 import { formatDate, formatTime, isEditable } from "../../types/concert";
@@ -9,12 +16,24 @@ type UpcomingConcertsProps = {
   onEdit: (concert: Concert) => void;
   onViewAll?: () => void;
   apiStatus?: LiveApiStatus;
+  onViewCheckIn: (concert: Concert) => void;
 };
 
-function ConcertRow({ concert, onEdit }: { concert: Concert; onEdit: (c: Concert) => void }) {
+function ConcertRow({
+  concert,
+  onEdit,
+  onViewCheckIn,
+}: {
+  concert: Concert;
+  onEdit: (c: Concert) => void;
+  onViewCheckIn: (c: Concert) => void;
+}) {
   return (
     <li className="flex items-center gap-4 py-3">
-      <ConcertImage concert={concert} className="w-24 h-14 shrink-0 rounded-lg" />
+      <ConcertImage
+        concert={concert}
+        className="w-24 h-14 shrink-0 rounded-lg"
+      />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -47,6 +66,16 @@ function ConcertRow({ concert, onEdit }: { concert: Concert; onEdit: (c: Concert
         </span>
       )}
 
+      {concert.source === "user" && (
+        <button
+          type="button"
+          onClick={() => onViewCheckIn(concert)}
+          className="inline-block shrink-0 rounded-md bg-violet-700 px-4 py-2 text-xs font-semibold text-white"
+        >
+          View CheckIn Summary
+        </button>
+      )}
+
       {isEditable(concert) ? (
         <button
           type="button"
@@ -71,7 +100,13 @@ function ConcertRow({ concert, onEdit }: { concert: Concert; onEdit: (c: Concert
   );
 }
 
-function UpcomingConcerts({ concerts, onEdit, onViewAll, apiStatus }: UpcomingConcertsProps) {
+function UpcomingConcerts({
+  concerts,
+  onEdit,
+  onViewAll,
+  apiStatus,
+  onViewCheckIn,
+}: UpcomingConcertsProps) {
   return (
     <section className="h-full rounded-xl bg-white p-5 shadow-sm">
       <div className="mb-2 flex items-center justify-between">
@@ -87,7 +122,9 @@ function UpcomingConcerts({ concerts, onEdit, onViewAll, apiStatus }: UpcomingCo
       </div>
 
       {apiStatus === "loading" && (
-        <p className="py-2 text-xs text-gray-500">Loading live concerts from SeatGeek…</p>
+        <p className="py-2 text-xs text-gray-500">
+          Loading live concerts from SeatGeek…
+        </p>
       )}
 
       {concerts.length === 0 ? (
@@ -99,7 +136,12 @@ function UpcomingConcerts({ concerts, onEdit, onViewAll, apiStatus }: UpcomingCo
       ) : (
         <ul className="divide-y divide-gray-100">
           {concerts.map((concert) => (
-            <ConcertRow key={concert.id} concert={concert} onEdit={onEdit} />
+            <ConcertRow
+              key={concert.id}
+              concert={concert}
+              onEdit={onEdit}
+              onViewCheckIn={onViewCheckIn}
+            />
           ))}
         </ul>
       )}

@@ -19,6 +19,7 @@ import Concerts from "./assets/pages/Concerts";
 import EventHistory from "./assets/pages/EventHistory";
 import Calendar from "./assets/pages/Calendar";
 import { useStoredAttendees } from "./hooks/useStoredAttendees";
+import CheckInSummary from "./assets/pages/CheckInSummary";
 import HeroCard from "./assets/components/HeroCard";
 
 // Sample upcoming concerts — only shown when the live API (SeatGeek) isn't available
@@ -93,6 +94,7 @@ function App() {
   ];
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConcert, setEditingConcert] = useState<Concert | null>(null);
+  const [selectedConcert, setSelectedConcert] = useState<Concert | null>(null);
 
   // Real events from SeatGeek; fall back to samples if unavailable
   const live = useLiveConcerts();
@@ -184,6 +186,9 @@ function App() {
     }
   };
 
+  const handleViewCheckIn = (concert: Concert) => {
+    setSelectedConcert(concert);
+    setCurrentPage("check-in");
   const handleLogin = () => {
     setIsLogin(true);
     setIsGuest(false);
@@ -236,6 +241,8 @@ function App() {
             />
           ) : currentPage === "calendar" ? (
             <Calendar concerts={concerts} />
+          ) : currentPage === "check-in" && selectedConcert ? (
+            <CheckInSummary selectedConcert={selectedConcert} />
           ) : (
             <>
               {/* DASHBOARD */}
