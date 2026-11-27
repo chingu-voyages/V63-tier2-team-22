@@ -1,5 +1,6 @@
 import {
   House,
+  LogOut,
   CalendarDays,
   UsersRound,
   QrCode,
@@ -53,8 +54,8 @@ function Sidebar({
       <nav aria-label="Main navigation" className="px-[17px] pt-[20px]">
         <div className="flex flex-col gap-[1px]">
           {mainMenu.map((item) => {
-            const Icon = item.icon;
             const page = item.label.toLowerCase().replace(/\s+/g, "-");
+            const Icon = isGuest && page === "home" ? LogOut : item.icon;
             const isActive = currentPage === page;
             return (
               <button
@@ -74,7 +75,9 @@ function Sidebar({
                   className="shrink-0 text-white"
                 />
 
-                <span className="text-[16px]">{item.label}</span>
+                <span className="text-[16px]">
+                  {isGuest && page === "home" ? "Log out" : item.label}
+                </span>
               </button>
             );
           })}

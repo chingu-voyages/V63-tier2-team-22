@@ -189,6 +189,8 @@ function App() {
   const handleViewCheckIn = (concert: Concert) => {
     setSelectedConcert(concert);
     setCurrentPage("check-in");
+  };
+
   const handleLogin = () => {
     setIsLogin(true);
     setIsGuest(false);
@@ -260,6 +262,7 @@ function App() {
                             onEdit={openEditConcert}
                             onViewAll={() => setCurrentPage("concerts")}
                             apiStatus={live.status}
+                            onViewCheckIn={handleViewCheckIn}
                           />
                         </div>
                         <PromoteWithAI />
