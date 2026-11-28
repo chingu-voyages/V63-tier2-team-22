@@ -8,9 +8,6 @@ import GuestDashboard from "./assets/pages/GuestDashboard";
 import Statbar from "./assets/components/Statbar";
 import UpcomingConcerts from "./assets/components/UpcomingConcerts";
 import PromoteWithAI from "./assets/components/PromoteWithAI";
-import AttendanceChart from "./assets/components/AttendanceChart";
-import TurnoutBySource from "./assets/components/TurnoutBySource";
-import RecentActivity from "./assets/components/RecentActivity";
 import ConcertFormModal from "./assets/components/ConcertFormModal";
 import type { Concert, ConcertFormValues } from "./types/concert";
 import { sortUpcoming, todayISO } from "./types/concert";
@@ -21,6 +18,9 @@ import Attendees from "./assets/components/Attendees";
 import Concerts from "./assets/pages/Concerts";
 import EventHistory from "./assets/pages/EventHistory";
 import Calendar from "./assets/pages/Calendar";
+import { useStoredAttendees } from "./hooks/useStoredAttendees";
+import CheckInSummary from "./assets/pages/CheckInSummary";
+import HeroCard from "./assets/components/HeroCard";
 
 // Sample upcoming concerts — only shown when the live API (SeatGeek) isn't available
 // (no API key, or the request failed), so the page never looks empty.
@@ -78,12 +78,14 @@ const sampleUpcoming: Concert[] = [
 
 function App() {
   const [isGuest, setIsGuest] = useState(false);
+  const [isLogin, setIsLogin] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
   // Concerts the app owns: user-created (plus edited copies of samples).
   // Everyone sees the ones stored in Firestore. Only non-guests save there;
   // guest creates/edits are kept in memory on top (guest copy wins by id).
   const stored = useStoredConcerts();
+  const attendeeStore = useStoredAttendees();
   const [guestConcerts, setGuestConcerts] = useState<Concert[]>([]);
   const guestIds = new Set(guestConcerts.map((c) => c.id));
   const concerts = [
@@ -92,6 +94,7 @@ function App() {
   ];
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConcert, setEditingConcert] = useState<Concert | null>(null);
+  const [selectedConcert, setSelectedConcert] = useState<Concert | null>(null);
 
   // Real events from SeatGeek; fall back to samples if unavailable
   const live = useLiveConcerts();
@@ -130,11 +133,13 @@ function App() {
 
   const handleGuestLogin = () => {
     setIsGuest(true);
+    setIsLogin(false);
     setCurrentPage("dashboard");
   };
 
   const handleBackHome = () => {
     setIsGuest(false);
+    setIsLogin(false);
     setGuestConcerts([]); // guest concerts don't outlive the guest session
     setCurrentPage("dashboard");
   };
@@ -153,10 +158,11 @@ function App() {
     if (isGuest) {
       if (editingConcert) {
         const edited = { ...editingConcert, ...values };
-        setGuestConcerts((prev) =>
-          prev.some((c) => c.id === edited.id)
-            ? prev.map((c) => (c.id === edited.id ? edited : c))
-            : [...prev, edited], // editing a fallback sample: keep our copy
+        setGuestConcerts(
+          (prev) =>
+            prev.some((c) => c.id === edited.id)
+              ? prev.map((c) => (c.id === edited.id ? edited : c))
+              : [...prev, edited], // editing a fallback sample: keep our copy
         );
       } else {
         const now = Date.now();
@@ -172,27 +178,50 @@ function App() {
       // Overwrites the stored concert (or, for a fallback sample, saves our copy)
       await stored.saveConcert({ ...editingConcert, ...values });
     } else {
-      await stored.saveConcert({ source: "user", createdAt: Date.now(), ...values });
+      await stored.saveConcert({
+        source: "user",
+        createdAt: Date.now(),
+        ...values,
+      });
     }
+  };
+
+  const handleViewCheckIn = (concert: Concert) => {
+    setSelectedConcert(concert);
+    setCurrentPage("check-in");
+  };
+
+  const handleLogin = () => {
+    setIsLogin(true);
+    setIsGuest(false);
+    setCurrentPage("dashboard");
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <Sidebar
-        onGuestLogin={handleGuestLogin}
-        isGuest={isGuest}
-        onNavigate={setCurrentPage}
-        currentPage={currentPage}
-      />
-
+      {(isGuest || isLogin) && (
+        <Sidebar
+          onGuestLogin={handleGuestLogin}
+          isGuest={isGuest}
+          onNavigate={(page) => {
+            if (page === "home") {
+              handleBackHome();
+            } else {
+              setCurrentPage(page);
+            }
+          }}
+          currentPage={currentPage}
+        />
+      )}
       {/* Main Layout */}
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
         <main className="flex w-full flex-1 flex-col gap-4 px-5 pt-4 pb-6">
-          {/* ATTENDEES PAGE */}
-          {currentPage === "attendees" ? (
+          {!isGuest && !isLogin ? (
+            <Home onGuestLogin={handleGuestLogin} onLogin={handleLogin} />
+          ) : currentPage === "attendees" ? (
             <Attendees />
           ) : currentPage === "concerts" ? (
             <Concerts
@@ -206,7 +235,7 @@ function App() {
           ) : currentPage === "event-history" ? (
             <EventHistory
               recent={recent.concerts}
-              owned={concerts.filter((c) => c.source === "user")}
+              owned={allConcerts}
               upcomingArtists={upcomingArtists}
               status={recent.status}
               error={recent.error}
@@ -214,20 +243,44 @@ function App() {
             />
           ) : currentPage === "calendar" ? (
             <Calendar concerts={concerts} />
+          ) : currentPage === "check-in" && selectedConcert ? (
+            <CheckInSummary selectedConcert={selectedConcert} />
           ) : (
             <>
-              {/* ORIGINAL HOME / DASHBOARD */}
-              {!isGuest ? (
-                <Home
-                  onGuestLogin={handleGuestLogin}
-                  onCreateConcert={openCreateConcert}
-                  onViewCalendar={() => setCurrentPage("calendar")}
-                />
-              ) : currentPage === "dashboard" ? (
-                <GuestDashboard
-                  onNavigate={setCurrentPage}
-                  onBackHome={handleBackHome}
-                />
+              {/* DASHBOARD */}
+              {currentPage === "dashboard" ? (
+                <>
+                  <HeroCard onViewCalendar={() => setCurrentPage("calendar")} />
+                  {isLogin ? (
+                    <>
+                      {/* Login DASHBOARD SECTIONS — PRESERVED */}
+                      <Statbar />
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                        <div className="lg:col-span-2">
+                          <UpcomingConcerts
+                            concerts={upcomingConcerts.slice(0, 5)}
+                            onEdit={openEditConcert}
+                            onViewAll={() => setCurrentPage("concerts")}
+                            apiStatus={live.status}
+                            onViewCheckIn={handleViewCheckIn}
+                          />
+                        </div>
+                        <PromoteWithAI />
+                      </div>
+                    </>
+                  ) : (
+                    <GuestDashboard
+                      onNavigate={setCurrentPage}
+                      onBackHome={handleBackHome}
+                      concerts={concerts.filter((c) => c.source === "user")}
+                      totalAttendees={attendeeStore.attendees.length}
+                      checkedInAttendees={
+                        attendeeStore.attendees.filter((a) => a.checkedIn)
+                          .length
+                      }
+                    />
+                  )}
+                </>
               ) : (
                 <div className="py-10">
                   <button
@@ -252,27 +305,6 @@ function App() {
                   </p>
                 </div>
               )}
-
-              {/* DASHBOARD SECTIONS — PRESERVED */}
-              <Statbar />
-
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <UpcomingConcerts
-                    concerts={upcomingConcerts.slice(0, 5)}
-                    onEdit={openEditConcert}
-                    onViewAll={() => setCurrentPage("concerts")}
-                    apiStatus={live.status}
-                  />
-                </div>
-                <PromoteWithAI />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <AttendanceChart />
-                <TurnoutBySource />
-                <RecentActivity />
-              </div>
             </>
           )}
         </main>

@@ -1,6 +1,6 @@
-
 import {
   House,
+  LogOut,
   CalendarDays,
   UsersRound,
   QrCode,
@@ -10,6 +10,7 @@ import {
   Layers3,
   Settings,
   ArrowRight,
+  LayoutGrid,
 } from "lucide-react";
 
 type SidebarProps = {
@@ -21,7 +22,8 @@ type SidebarProps = {
 
 // Main navigation
 const mainMenu = [
-  { label: "Dashboard", icon: House },
+  { label: "Home", icon: House },
+  { label: "Dashboard", icon: LayoutGrid },
   { label: "Concerts", icon: CalendarDays },
   { label: "Attendees", icon: UsersRound },
   { label: "Check-In", icon: QrCode },
@@ -43,24 +45,20 @@ function Sidebar({
   onNavigate,
   currentPage,
 }: SidebarProps) {
-
   return (
     <aside
       aria-label="Sidebar"
       className="hidden min-h-screen w-[267px] shrink-0 flex-col bg-gradient-to-b from-[#120B1C] via-[#161021] to-[#1C142A] text-white md:flex"
     >
       {/* Main Navigation */}
-      <nav
-        aria-label="Main navigation"
-        className="px-[17px] pt-[20px]"
-      >
+      <nav aria-label="Main navigation" className="px-[17px] pt-[20px]">
         <div className="flex flex-col gap-[1px]">
           {mainMenu.map((item) => {
-            const Icon = item.icon;
             const page = item.label.toLowerCase().replace(/\s+/g, "-");
+            const Icon = isGuest && page === "home" ? LogOut : item.icon;
             const isActive = currentPage === page;
             return (
-             <button
+              <button
                 key={item.label}
                 type="button"
                 onClick={() => onNavigate(page)}
@@ -78,7 +76,7 @@ function Sidebar({
                 />
 
                 <span className="text-[16px]">
-                  {item.label}
+                  {isGuest && page === "home" ? "Log out" : item.label}
                 </span>
               </button>
             );
@@ -90,10 +88,7 @@ function Sidebar({
       <div className="mx-[28px] mt-[18px] border-t border-white/65" />
 
       {/* Secondary Navigation */}
-      <nav
-        aria-label="Account navigation"
-        className="px-[17px] pt-[15px]"
-      >
+      <nav aria-label="Account navigation" className="px-[17px] pt-[15px]">
         <div className="flex flex-col gap-[1px]">
           {secondaryMenu.map((item) => {
             const Icon = item.icon;
@@ -110,27 +105,22 @@ function Sidebar({
                   className="shrink-0 text-white"
                 />
 
-                <span className="text-[16px]">
-                  {item.label}
-                </span>
+                <span className="text-[16px]">{item.label}</span>
               </button>
             );
           })}
         </div>
       </nav>
 
- 
       {/* Guest Account Section */}
       {!isGuest && (
         <div className="mt-auto px-[14px] pb-[16px] pt-8">
           <div className="rounded-[15px] border border-[#9960D7] bg-gradient-to-br from-[#29183E] to-[#3A2458] px-[22px] py-[20px]">
-            <h2 className="mb-[7px] text-[21px] font-bold">
-              Try VibeTrack
-            </h2>
+            <h2 className="mb-[7px] text-[21px] font-bold">Try VibeTrack</h2>
 
             <p className="text-[15px] leading-[21px] text-[#F0EAF6]">
-              Explore the platform with a guest account and
-              manage a sample concert.
+              Explore the platform with a guest account and manage a sample
+              concert.
             </p>
 
             <button
@@ -149,4 +139,3 @@ function Sidebar({
 }
 
 export default Sidebar;
-
