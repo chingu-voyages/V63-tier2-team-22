@@ -5,7 +5,8 @@ type HomeProps = {
   onLogin: () => void;
 };
 
-function Home({ onGuestLogin, onLogin }: HomeProps) {
+//function Home({ onGuestLogin, onLogin }: HomeProps) {
+function Home({ onGuestLogin, onLogin: _onLogin }: HomeProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-10 text-center">
       <h1 className="text-5xl font-bold">Welcome to VibeTrack</h1>
