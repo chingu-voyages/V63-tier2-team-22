@@ -1,4 +1,4 @@
-import { LogIn } from "lucide-react";
+//import { LogIn } from "lucide-react";
 
 type HomeProps = {
   onGuestLogin: () => void;
