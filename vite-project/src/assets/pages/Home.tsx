@@ -11,14 +11,14 @@ function Home({ onGuestLogin, onLogin }: HomeProps) {
       <h1 className="text-5xl font-bold">Welcome to VibeTrack</h1>
       <div className="flex gap-3">
         {/* Login */}
-        <button
+        {/* <button
           type="button"
           onClick={onLogin}
           className="flex shrink-0 items-center gap-2 rounded-xl bg-purple-700 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-purple-800 md:px-6 cursor-pointer"
         >
           <LogIn size={19} />
           <span>Log In</span>
-        </button>
+        </button> */}
         {/* Continue as guest */}
         <button
           type="button"
